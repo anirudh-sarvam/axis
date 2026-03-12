@@ -25,6 +25,9 @@ import tempfile
 from datetime import datetime
 import pytz
 import importlib.util
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from scripts.paid_file_ingestion import (
     build_file_pattern,
