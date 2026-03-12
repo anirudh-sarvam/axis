@@ -1,0 +1,41 @@
+# Logs
+logs/
+*.log
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Downloaded files buffer
+sftp_buffer/
+sftp_downloads/
+temp_buffer/
+
+# IDE / OS
+*.swp
+*.swo
+.DS_Store
+.idea/
+.vscode/
+
+# Virtual environment
+venv/
+.venv/
+
+# mypy cache
+.mypy_cache/
+
+# Data files (downloaded from SFTP)
+data/
+
+# Secrets
+.env
+
+# Lock files
+*.lock
+!poetry.lock
+
+# Working/temp files
+*.tmp
+*.bak

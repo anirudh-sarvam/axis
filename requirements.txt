@@ -1,0 +1,6 @@
+paramiko
+slack-sdk
+python-dotenv
+azure-storage-blob
+httpx
+pandas
