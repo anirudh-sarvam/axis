@@ -43,7 +43,7 @@ BASE_DIR = "/home/sarvam/axis"
 LOG_FILE = BASE_DIR + "/logs/cc_paid_file_ingestion.log"
 AXIS_PROCESSED_LOG = BASE_DIR + "/logs/axis_processed_files.log"
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0AE46B861X")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ADMKT2WDT")
 ALERT_TYPE = "CC PAID FILE INGESTION"
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

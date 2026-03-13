@@ -46,7 +46,7 @@ ORG_ID = "axisbank.com"
 WORKSPACE_ID = "axisbank-com-defau-3b9581"
 
 SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN", "")
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0AE46B861X")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ADMKT2WDT")
 ALERT_TYPE = "CC ALLOCATION SCHEDULING"
 
 

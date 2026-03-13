@@ -73,7 +73,7 @@ BASE_DIR = "/home/sarvam/axis"
 LOCAL_BUFFER = BASE_DIR + "/temp_buffer"
 LOG_FILE = BASE_DIR + "/logs/axis_processed_files.log"
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0AE46B861X")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ADMKT2WDT")
 OOO_BASE_DIR = "/home/sarvam/ooo-automation"
 OOO_LOG_DIR = OOO_BASE_DIR + "/logs"
 

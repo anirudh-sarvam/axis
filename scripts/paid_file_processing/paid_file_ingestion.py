@@ -48,7 +48,7 @@ WORKING_FILE_DIR = BASE_DIR + "/data/working_file/pl"
 LOG_FILE = BASE_DIR + "/logs/paid_file_ingestion.log"
 AXIS_PROCESSED_LOG = BASE_DIR + "/logs/axis_processed_files.log"
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0AE46B861X")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ADMKT2WDT")
 PAID_LOG_FILE = LOG_FILE
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
