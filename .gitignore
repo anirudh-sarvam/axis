@@ -32,6 +32,13 @@ data/
 # Secrets
 .env
 
+# Certificates and keys
+certs/
+*.key
+*.p12
+*.pem
+*.csr
+
 # Lock files
 *.lock
 !poetry.lock
