@@ -6,3 +6,6 @@ httpx
 pandas
 jwcrypto
 python-dateutil
+msoffcrypto-tool
+phonenumbers
+openpyxl
