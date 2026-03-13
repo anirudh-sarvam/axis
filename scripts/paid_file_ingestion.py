@@ -126,17 +126,23 @@ def validate_file_format(file_path):
     if df is None or len(df) == 0:
         return False, "File has no data", None
 
-    # Check ACCNO/ACCNO2 columns
+    # Check ACCNO/ACCNO2 columns (case-insensitive)
+    col_map = {c.strip().lower(): c for c in df.columns}
     accno_col = None
-    for col in ["ACCNO", "ACCNO2"]:
-        if col in df.columns:
-            accno_col = col
+    for name in ["accno", "accno2"]:
+        if name in col_map:
+            accno_col = col_map[name]
             break
     if accno_col is None:
         return False, "Missing ACCNO or ACCNO2 column", df
 
-    # Check STATUS column
-    if "STATUS" not in df.columns:
+    # Check STATUS column (case-insensitive)
+    status_col = None
+    for name in ["status"]:
+        if name in col_map:
+            status_col = col_map[name]
+            break
+    if status_col is None:
         return False, "Missing STATUS column", df
 
     # Basic transform / validation

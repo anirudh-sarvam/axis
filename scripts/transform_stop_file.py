@@ -31,29 +31,47 @@ BASE_DIR = "/home/sarvam/axis"
 PL_WORKING_FILE_DIR = os.path.join(BASE_DIR, "data", "working_file", "pl")
 
 
+def _find_col(row, candidates):
+    """Find the first matching column name from candidates (case-insensitive)."""
+    row_keys = {k.strip().lower(): k for k in row.keys()}
+    for c in candidates:
+        if c in row.keys():
+            return c
+        lower = c.strip().lower()
+        if lower in row_keys:
+            return row_keys[lower]
+    return None
+
+
 def get_user_identifier(row):
     """Extract ACCNO2 or ACCNO from row."""
-    if "ACCNO2" in row.keys():
-        return row["ACCNO2"]
-    elif "ACCNO" in row.keys():
-        return row["ACCNO"]
-    else:
-        raise ValueError(
-            f"No account number column found. "
-            f"Expected 'ACCNO2' or 'ACCNO'. Available: {list(row.keys())}"
-        )
+    col = _find_col(row, ["ACCNO2", "ACCNO", "Accno2", "Accno", "accno2", "accno"])
+    if col is not None:
+        return row[col]
+    raise ValueError(
+        f"No account number column found. "
+        f"Expected 'ACCNO2' or 'ACCNO'. Available: {list(row.keys())}"
+    )
 
 
 def get_status(row):
     """Determine RESOLVED/UNRESOLVED."""
+    status_val = ""
+    for col in ["Status", "STATUS", "status"]:
+        if col in row and pd.notna(row[col]) and str(row[col]).strip():
+            status_val = str(row[col]).strip().lower()
+            break
+
+    overdue_val = None
+    for col in ["Total Overdue", "TOTAL_OVERDUE", "Total_Overdue"]:
+        if col in row and pd.notna(row[col]):
+            overdue_val = row[col]
+            break
+
     if (
-        str(row.get("Status", "")).lower() == "resolved"
-        or str(row.get("Status", "")).lower() == "resoled"
-        or str(row.get("Status", "")).lower() == "r"
+        status_val in ("resolved", "resoled", "r")
         or (
-            round(float(row.get("Total Overdue", 0))) <= 1
-            if pd.notna(row.get("Total Overdue"))
-            else False
+            overdue_val is not None and round(float(overdue_val)) <= 1
         )
         or str(row.get("Campaign till date", "")) == "5th jan"
     ):
@@ -62,47 +80,47 @@ def get_status(row):
         return "UNRESOLVED"
 
 
-def get_payment_date(row):
-    """Extract PAYMENT_DATE from Res_Date or LAST_PAYMENT_DATE, format as YYYY-MM-DD."""
-    if "Res_Date" in row and pd.notna(row["Res_Date"]) and str(row["Res_Date"]).strip() != "":
-        date_val = row["Res_Date"]
-        try:
-            if isinstance(date_val, pd.Timestamp):
-                return date_val.strftime("%Y-%m-%d")
-            elif isinstance(date_val, str):
-                for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"]:
-                    try:
-                        return datetime.strptime(date_val.strip(), fmt).strftime("%Y-%m-%d")
-                    except (ValueError, TypeError):
-                        continue
-        except Exception:
-            pass
+def _parse_date_val(date_val):
+    """Parse a date value (Timestamp or string) to YYYY-MM-DD."""
+    try:
+        if isinstance(date_val, pd.Timestamp):
+            return date_val.strftime("%Y-%m-%d")
+        elif isinstance(date_val, str):
+            for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d", "%d-%b-%Y", "%d %b %Y"]:
+                try:
+                    return datetime.strptime(date_val.strip(), fmt).strftime("%Y-%m-%d")
+                except (ValueError, TypeError):
+                    continue
+    except Exception:
+        pass
+    return None
 
-    if "LAST_PAYMENT_DATE" in row and pd.notna(row["LAST_PAYMENT_DATE"]) and str(row["LAST_PAYMENT_DATE"]).strip() != "":
-        date_val = row["LAST_PAYMENT_DATE"]
-        try:
-            if isinstance(date_val, pd.Timestamp):
-                return date_val.strftime("%Y-%m-%d")
-            elif isinstance(date_val, str):
-                for fmt in ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%Y/%m/%d"]:
-                    try:
-                        return datetime.strptime(date_val.strip(), fmt).strftime("%Y-%m-%d")
-                    except (ValueError, TypeError):
-                        continue
-        except Exception:
-            pass
+
+def get_payment_date(row):
+    """Extract PAYMENT_DATE from Res_Date, PM Date, or LAST_PAYMENT_DATE, format as YYYY-MM-DD."""
+    for candidates in [
+        ["Res_Date", "RES_DATE", "res_date"],
+        ["PM Date", "PM_DATE", "pm date", "PM_Date"],
+        ["LAST_PAYMENT_DATE", "Last_Payment_Date", "last_payment_date"],
+    ]:
+        col = _find_col(row, candidates)
+        if col and pd.notna(row[col]) and str(row[col]).strip():
+            result = _parse_date_val(row[col])
+            if result:
+                return result
 
     return ""
 
 
 def get_total_overdue(row):
     """Extract total overdue amount, return 0 on error."""
-    if "Total Overdue" in row and pd.notna(row["Total Overdue"]):
-        return round(float(row["Total Overdue"]))
-    elif "TOTAL_OVERDUE" in row and pd.notna(row["TOTAL_OVERDUE"]):
-        return round(float(row["TOTAL_OVERDUE"]))
-    else:
-        return 0
+    col = _find_col(row, ["Total Overdue", "TOTAL_OVERDUE", "Total_Overdue", "total_overdue", "TOD", "OD"])
+    if col and pd.notna(row[col]):
+        try:
+            return round(float(row[col]))
+        except (ValueError, TypeError):
+            pass
+    return 0
 
 
 def transform_stop_file(df: pd.DataFrame) -> pd.DataFrame:

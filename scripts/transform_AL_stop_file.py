@@ -96,25 +96,38 @@ def load_al_allocation_data():
     return allocation_data
 
 
+def _find_col(row, candidates):
+    """Find the first matching column name from candidates (case-insensitive)."""
+    row_keys = {k.strip().lower(): k for k in row.index}
+    for c in candidates:
+        if c in row.index:
+            return c
+        lower = c.strip().lower()
+        if lower in row_keys:
+            return row_keys[lower]
+    return None
+
+
 def get_user_identifier(row):
     """Extract account number from AL payment file row."""
-    if "ACCNO2" in row.index and pd.notna(row["ACCNO2"]) and str(row["ACCNO2"]).strip():
-        return str(row["ACCNO2"]).strip()
-    if "ACCNO" in row.index and pd.notna(row["ACCNO"]) and str(row["ACCNO"]).strip():
-        return str(row["ACCNO"]).strip()
+    col = _find_col(row, ["ACCNO2", "ACCNO", "Accno2", "Accno", "accno2", "accno"])
+    if col and pd.notna(row[col]) and str(row[col]).strip():
+        return str(row[col]).strip()
     return None
 
 
 def get_status(row):
     """Determine RESOLVED/UNRESOLVED status from AL payment file."""
-    if "STATUS" in row.index and pd.notna(row["STATUS"]):
-        status = str(row["STATUS"]).strip().lower()
-        if status in ["resolved", "normalization"]:
+    col = _find_col(row, ["STATUS", "Status", "status"])
+    if col and pd.notna(row[col]):
+        status = str(row[col]).strip().lower()
+        if status in ["resolved", "resoled", "normalization", "r"]:
             return "RESOLVED"
 
-    if "OD" in row.index and pd.notna(row["OD"]):
+    od_col = _find_col(row, ["OD", "od", "TOTAL_OVERDUE", "Total Overdue", "Total_Overdue", "total_overdue"])
+    if od_col and pd.notna(row[od_col]):
         try:
-            if round(float(row["OD"])) <= 1:
+            if round(float(row[od_col])) <= 1:
                 return "RESOLVED"
         except (ValueError, TypeError):
             pass
@@ -124,9 +137,10 @@ def get_status(row):
 
 def get_total_overdue(row):
     """Extract total overdue from AL payment file row."""
-    if "OD" in row.index and pd.notna(row["OD"]):
+    col = _find_col(row, ["OD", "od", "TOTAL_OVERDUE", "Total Overdue", "Total_Overdue", "total_overdue"])
+    if col and pd.notna(row[col]):
         try:
-            return int(round(float(row["OD"])))
+            return int(round(float(row[col])))
         except (ValueError, TypeError):
             pass
     return 0

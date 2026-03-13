@@ -119,22 +119,42 @@ def load_allocation_data() -> pd.DataFrame:
     return combined
 
 
+def _find_col(row, candidates):
+    """Find the first matching column name from candidates (case-insensitive)."""
+    row_keys = {k.strip().lower(): k for k in row.index}
+    for c in candidates:
+        if c in row.index:
+            return c
+        lower = c.strip().lower()
+        if lower in row_keys:
+            return row_keys[lower]
+    return None
+
+
 def get_payment_amount(row):
     """Extract payment amount from CC payment file row."""
-    for col in ["Amount", "AMOUNT", "amount", "Payment", "PAYMENT", "Payment Received Amount"]:
-        if col in row.index and pd.notna(row[col]):
-            try:
-                return int(round(float(row[col])))
-            except (ValueError, TypeError):
-                pass
+    col = _find_col(row, [
+        "Amount", "AMOUNT", "amount",
+        "Payment", "PAYMENT", "payment",
+        "Payment Received Amount", "PAYMENT_RECEIVED_AMOUNT", "payment_received_amount",
+    ])
+    if col and pd.notna(row[col]):
+        try:
+            return int(round(float(row[col])))
+        except (ValueError, TypeError):
+            pass
     return 0
 
 
 def get_user_identifier(row):
     """Extract account number from CC payment file row."""
-    for col in ["ACCOUNT_NO", "#ACCOUNT_NO", "Account No", "Account_No"]:
-        if col in row.index and pd.notna(row[col]) and str(row[col]).strip():
-            return str(row[col]).strip()
+    col = _find_col(row, [
+        "ACCOUNT_NO", "#ACCOUNT_NO", "Account No", "Account_No",
+        "account_no", "#account_no", "account no",
+        "user_identifier",
+    ])
+    if col and pd.notna(row[col]) and str(row[col]).strip():
+        return str(row[col]).strip()
     return None
 
 
@@ -155,9 +175,14 @@ def transform_cc_stop_file(df: pd.DataFrame) -> pd.DataFrame:
     # Drop rows without valid account numbers
     df = df.dropna(subset=["user_identifier"])
 
-    # Capture raw Final Status before dedup
-    if "Final Status" in df.columns:
-        df["_raw_resolved"] = df["Final Status"].astype(str).str.strip().str.upper() == "RESOLVED"
+    # Capture raw Final Status before dedup (case-insensitive column lookup)
+    status_col = None
+    for c in df.columns:
+        if c.strip().lower() in ("final status", "final_status", "status"):
+            status_col = c
+            break
+    if status_col:
+        df["_raw_resolved"] = df[status_col].astype(str).str.strip().str.upper() == "RESOLVED"
     else:
         df["_raw_resolved"] = False
 

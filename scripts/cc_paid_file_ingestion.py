@@ -146,20 +146,21 @@ def validate_cc_file_format(file_path):
     if df is None or len(df) == 0:
         return False, "File has no data", None
 
-    # CC uses user_identifier / ACCOUNT_NO - not ACCNO
+    # CC uses user_identifier / ACCOUNT_NO - not ACCNO (case-insensitive)
+    col_map = {c.strip().lower(): c for c in df.columns}
     account_col = None
-    for col in ["ACCOUNT_NO", "#ACCOUNT_NO", "Account No", "user_identifier"]:
-        if col in df.columns:
-            account_col = col
+    for name in ["account_no", "#account_no", "account no", "user_identifier"]:
+        if name in col_map:
+            account_col = col_map[name]
             break
     if account_col is None:
         return False, "Missing user_identifier/ACCOUNT_NO column", df
 
-    # Check for amount columns
+    # Check for amount columns (case-insensitive)
     amount_col = None
-    for col in ["Amount", "AMOUNT", "amount", "Payment", "PAYMENT", "Payment Received Amount"]:
-        if col in df.columns:
-            amount_col = col
+    for name in ["amount", "payment", "payment received amount", "payment_received_amount"]:
+        if name in col_map:
+            amount_col = col_map[name]
             break
     if amount_col is None:
         return False, "Missing amount/payment column", df
