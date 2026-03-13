@@ -409,6 +409,10 @@ async def process_pullback_files(pullback_files):
             if csv_path and os.path.exists(csv_path):
                 csv_name = os.path.basename(csv_path)
                 upload_to_blob(csv_path, "pullback_file", product, filename=csv_name)
+                try:
+                    os.remove(csv_path)
+                except OSError:
+                    pass
 
             status_str = "SUCCESS" if success else "COMPLETED (check status)"
             msg = (
@@ -457,10 +461,10 @@ def handle_file(rule, name, full_remote_path, current_dir, general_history, coll
         blob_path = upload_to_blob(local_path, "allocation_file", product, filename=name)
         if blob_path:
             upload_to_slack(local_path, name)
-        try:
-            os.remove(local_path)
-        except OSError:
-            pass
+            try:
+                os.remove(local_path)
+            except OSError:
+                pass
         append_to_log(LOG_FILE, full_remote_path)
         return
     if rule.get("handler") == "ooo":
@@ -632,6 +636,15 @@ async def main():
 
     if pullback_collected:
         await process_pullback_files(pullback_collected)
+
+    processed_log = load_history()
+    for lp, _rn, frp in collected_files:
+        if frp in processed_log:
+            try:
+                if os.path.exists(lp):
+                    os.remove(lp)
+            except OSError:
+                pass
 
 
 if __name__ == "__main__":
