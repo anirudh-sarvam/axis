@@ -327,7 +327,7 @@ def build_file_rules(patterns, histories):
     al_alloc_pat = patterns.get("al_alloc") or build_al_allocation_pattern()[0]
 
     cc_lien_pat = re.compile(
-        r"Post\s+D(?:ue|ye)\s+Date\s+Cards\s+Lien\s+Status.*\.(xlsx|xls|csv)", re.IGNORECASE
+        r"Post\s+D(?:ue|ye)\s+Date\s+Cards\s+Lien\s+Accounts\s+Restriction.*\.(xlsx|xls|csv)", re.IGNORECASE
     )
     cc_pullback_pat = re.compile(
         r"Post\s+D(?:ue|ye)\s+Date\s+(?:Cards?\s+)?Cycle\s+\d+.*(?:Restriction|Pullback)\s+Accounts.*\.(xlsx|xls|csv)",

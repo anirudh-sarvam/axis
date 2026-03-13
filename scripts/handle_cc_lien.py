@@ -1,7 +1,7 @@
-"""CC Lien Handler — marks lien-status accounts as tad_resolved.
+"""CC Lien Handler — marks all lien-restriction accounts as tad_resolved.
 
-Reads CC lien Excel, filters for accounts where SI BALANCE >= Lien Amount
-(funds available to cover lien), creates CSV with user_identifier +
+Reads CC lien restriction Excel, marks ALL accounts as tad_resolved=true
+(lien has been placed on their account), creates CSV with user_identifier +
 tad_resolved=true, uploads to Sarvam API.
 """
 
@@ -23,48 +23,28 @@ CC_WORKFLOW_ID = "axis-cc-workflow-96c8a4ac"
 
 
 def _find_account_column(df):
+    col_map = {c.strip().upper().replace(" ", "_"): c for c in df.columns}
+    for name in ("#ACCOUNT_NO", "ACCOUNT_NO", "ACC_NO", "CARD_NO", "CARDNO"):
+        if name in col_map:
+            return col_map[name]
     for c in df.columns:
-        c_up = c.upper().replace(" ", "_")
-        if c_up in ("#ACCOUNT_NO", "ACCOUNT_NO", "ACC_NO", "CARD_NO", "CARDNO"):
-            return c
         if ("card" in c.lower() or "account" in c.lower()) and "no" in c.lower():
             return c
     return df.columns[0]
 
 
-def _find_column(df, candidates):
-    """Find a column whose name matches one of the candidate substrings."""
-    for c in df.columns:
-        c_norm = c.upper().replace(" ", "_")
-        for cand in candidates:
-            if cand in c_norm:
-                return c
-    return None
-
-
 def process_lien(local_path, output_dir):
-    """Read CC lien Excel, produce resolved CSV.
-    Only accounts where SI BALANCE >= Lien Amount are marked resolved.
+    """Read CC lien restriction Excel, mark all accounts as tad_resolved.
     Returns (df_result, csv_path, stats_dict).
     """
     df = pd.read_excel(local_path)
     acc_col = _find_account_column(df)
-    balance_col = _find_column(df, ["SI_BALANCE", "SI BALANCE", "BALANCE"])
-    lien_col = _find_column(df, ["LIEN_AMOUNT", "LIEN AMOUNT", "LIEN_AMT"])
-
-    if balance_col is None or lien_col is None:
-        print(f"[CC Lien] Could not find balance/lien columns. Columns: {list(df.columns)}")
-        print(f"[CC Lien] balance_col={balance_col}, lien_col={lien_col}")
-        filtered = df
-    else:
-        df[balance_col] = pd.to_numeric(df[balance_col], errors="coerce").fillna(0)
-        df[lien_col] = pd.to_numeric(df[lien_col], errors="coerce").fillna(0)
-        filtered = df[df[balance_col] >= df[lien_col]]
-        print(f"[CC Lien] {balance_col} >= {lien_col}: {len(filtered)} / {len(df)} accounts have funds")
 
     result = pd.DataFrame()
-    result["user_identifier"] = filtered[acc_col].astype(str).str.strip()
+    result["user_identifier"] = df[acc_col].astype(str).str.strip()
     result["tad_resolved"] = "true"
+    result = result[result["user_identifier"].str.len() > 0]
+    result = result[result["user_identifier"] != "nan"]
     result = result.drop_duplicates(subset="user_identifier", keep="last")
 
     os.makedirs(output_dir, exist_ok=True)
@@ -72,13 +52,12 @@ def process_lien(local_path, output_dir):
     csv_path = os.path.join(output_dir, f"{base}_resolved.csv")
     result.to_csv(csv_path, index=False)
 
+    print(f"[CC Lien] All {len(result)} accounts marked tad_resolved (lien restriction)")
+
     stats = {
         "total_accounts": len(df),
-        "funds_available": len(filtered),
         "unique_resolved": len(result),
         "account_column": acc_col,
-        "balance_column": balance_col or "N/A",
-        "lien_column": lien_col or "N/A",
     }
     return result, csv_path, stats
 

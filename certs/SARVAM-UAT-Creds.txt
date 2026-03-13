@@ -1,0 +1,8 @@
+Channel ID
+SARVAM
+
+Client ID
+1f42ebc532ab4b08f19d75209e0ceca1
+
+Client secret
+6f04441c1b790d40bb2f41fb4c616bd1

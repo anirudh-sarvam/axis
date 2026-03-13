@@ -4,3 +4,4 @@ python-dotenv
 azure-storage-blob
 httpx
 pandas
+jwcrypto
