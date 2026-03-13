@@ -15,14 +15,14 @@ import os
 import sys
 import glob
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(_THIS_DIR)
+_ROOT_DIR = os.path.dirname(_SCRIPTS_DIR)
+sys.path.insert(0, _THIS_DIR)
+sys.path.insert(0, _SCRIPTS_DIR)
+sys.path.insert(0, _ROOT_DIR)
 
-from transform_stop_file import (
-    get_axis_access_token,
-    upload_user_context_file,
-    get_job_status,
-)
+from api_client import get_axis_access_token, upload_user_context_file, get_job_status
 from blob_utils import sync_from_blob, cleanup_local_dir
 
 BASE_URL = "https://apps.sarvam.ai"

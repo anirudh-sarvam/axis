@@ -4,26 +4,24 @@ PL (Personal Loan) Stop File Transformation and Upload
 
 Transforms PL payment files into workflow format, maintains a cumulative working file
 across processing runs, and computes confirmed_paid_amount using allocation data from blob.
-
-Also provides shared auth/upload functions used by CC and AL modules.
 """
 
 import pandas as pd
-import httpx
 import asyncio
 import os
 import sys
 import pytz
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(_THIS_DIR)
+_ROOT_DIR = os.path.dirname(_SCRIPTS_DIR)
+sys.path.insert(0, _THIS_DIR)
+sys.path.insert(0, _SCRIPTS_DIR)
+sys.path.insert(0, _ROOT_DIR)
 
+from api_client import get_axis_access_token, upload_user_context_file, get_job_status
 from blob_utils import sync_from_blob, upload_to_blob, download_from_blob, cleanup_local_dir
-
-BASE_URL = "https://apps.sarvam.ai"
-API_SERVICE_URL = "https://apps.sarvam.ai/api/api-service"
-ORG_ID = "axisbank.com"
-WORKSPACE_ID = "axisbank-com-defau-3b9581"
 WORKFLOW_IDS = [
     "axis-workflow-v3-e696d676",
 ]
@@ -234,53 +232,6 @@ def update_cumulative_working_file(today_df: pd.DataFrame) -> str:
     upload_to_blob(snapshot_path, "working_file", "pl", month=get_current_month())
     upload_to_blob(cumulative_path, "working_file", "pl", month=get_current_month())
     return cumulative_path
-
-
-async def get_axis_access_token():
-    """POST to /api/auth/login with org credentials, return access_token."""
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{BASE_URL}/api/auth/login",
-                json={
-                    "org_id": ORG_ID,
-                    "user_id": "sarvam-admin@axisbank.com",
-                    "password": os.environ["AXIS_API_PASSWORD"],
-                },
-                timeout=60.0,
-            )
-            resp.raise_for_status()
-            access_token = resp.json().get("access_token")
-            print("Access token obtained successfully.")
-            return access_token
-    except httpx.HTTPStatusError as e:
-        print(e)
-        raise
-    except Exception as e:
-        print(e)
-        raise
-
-
-async def upload_user_context_file(file_path: str, access_token: str, workflow_id: str):
-    """Upload CSV to workflow via api-service endpoint. Returns job_id."""
-    url = f"{API_SERVICE_URL}/orgs/{ORG_ID}/workspaces/{WORKSPACE_ID}/workflows/{workflow_id}/user-context-jobs"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    with open(file_path, "rb") as f:
-        files = {"file": (file_path, f, "text/csv")}
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(url, headers=headers, files=files, timeout=120.0)
-            resp.raise_for_status()
-            return resp.json()["job_id"]
-
-
-async def get_job_status(job_id: str, access_token: str, workflow_id: str):
-    """Poll job status via api-service endpoint."""
-    url = f"{API_SERVICE_URL}/orgs/{ORG_ID}/workspaces/{WORKSPACE_ID}/workflows/{workflow_id}/jobs/{job_id}"
-    headers = {"Authorization": f"Bearer {access_token}"}
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(url, headers=headers, timeout=30.0)
-        resp.raise_for_status()
-        return resp.json()
 
 
 async def upload_working_file(working_file_path: str, workflow_id: str) -> None:

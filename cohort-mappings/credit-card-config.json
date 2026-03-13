@@ -1,0 +1,115 @@
+{
+  "phone_number": {
+    "column_name": "user_mobile_number",
+    "formatting_functions": []
+  },
+  "app_overrides": {},
+  "workflow_variables": {
+    "account_number": {
+      "column_name": "user_identifier",
+      "required": false,
+      "formatting_functions": []
+    },
+    "bank_type": {
+      "column_name": "bank_name",
+      "required": false,
+      "formatting_functions": []
+    },
+    "credit_limit": {
+      "column_name": "CREDITLIMI",
+      "required": false,
+      "formatting_functions": [
+        {
+          "name": "indian_currency",
+          "params": {}
+        }
+      ]
+    },
+    "creditcard_number": {
+      "column_name": "CARD_NO",
+      "required": false,
+      "formatting_functions": []
+    },
+    "due_date": {
+      "column_name": "LASTPRINTDUEDAT",
+      "required": false,
+      "formatting_functions": []
+    },
+    "last_bill_amount": {
+      "column_name": "total_amount_due",
+      "required": false,
+      "formatting_functions": [
+        {
+          "name": "indian_currency",
+          "params": {}
+        }
+      ]
+    },
+    "last_bill_date": {
+      "column_name": "LASTBILLINGDATE",
+      "required": false,
+      "formatting_functions": []
+    },
+    "last_payment_amount": {
+      "column_name": "LAST_PAYMENT",
+      "required": false,
+      "formatting_functions": [
+        {
+          "name": "indian_currency",
+          "params": {}
+        }
+      ]
+    },
+    "last_payment_date": {
+      "column_name": "LAST_PAY_DATE",
+      "required": false,
+      "formatting_functions": []
+    },
+    "min_due": {
+      "column_name": "min_amount_due",
+      "required": false,
+      "formatting_functions": [
+        {
+          "name": "indian_currency",
+          "params": {}
+        }
+      ]
+    },
+    "product_type": {
+      "column_name": "PRODUCT",
+      "required": false,
+      "formatting_functions": []
+    },
+    "risk_segment": {
+      "column_name": "risk_segment",
+      "required": false,
+      "formatting_functions": []
+    },
+    "state_of_residence": {
+      "column_name": "FINAL_STATE",
+      "required": false,
+      "formatting_functions": []
+    },
+    "user_name": {
+      "column_name": "NAME",
+      "required": false,
+      "formatting_functions": []
+    }
+  },
+  "scheduling": {
+    "risk_workflow_map": {
+      "L": { "workflow_id": "axis-cc-workflow-96c8a4ac", "version": 8 },
+      "M": { "workflow_id": "axis-cc-workflow-3d1f2085", "version": 4 },
+      "H": { "workflow_id": "axis-cc-workflow-835918f5", "version": 4 }
+    },
+    "allowed_schedule": {
+      "allowed_start_time": "10:00",
+      "allowed_end_time": "19:00",
+      "allowed_days": [
+        "Monday", "Tuesday", "Wednesday", "Thursday",
+        "Friday", "Saturday", "Sunday"
+      ]
+    },
+    "campaign_end_time_ist": "19:30"
+  }
+}

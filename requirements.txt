@@ -5,3 +5,4 @@ azure-storage-blob
 httpx
 pandas
 jwcrypto
+python-dateutil

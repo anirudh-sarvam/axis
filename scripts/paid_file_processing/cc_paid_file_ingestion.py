@@ -20,8 +20,12 @@ import traceback
 from datetime import datetime
 import pytz
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_SCRIPTS_DIR = os.path.dirname(_THIS_DIR)
+_ROOT_DIR = os.path.dirname(_SCRIPTS_DIR)
+sys.path.insert(0, _THIS_DIR)
+sys.path.insert(0, _SCRIPTS_DIR)
+sys.path.insert(0, _ROOT_DIR)
 
 from transform_cc_stop_file import (
     convert_to_cc_workflow_format,
@@ -39,7 +43,7 @@ BASE_DIR = "/home/sarvam/axis"
 LOG_FILE = BASE_DIR + "/logs/cc_paid_file_ingestion.log"
 AXIS_PROCESSED_LOG = BASE_DIR + "/logs/axis_processed_files.log"
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ADMKT2WDT")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0AE46B861X")
 ALERT_TYPE = "CC PAID FILE INGESTION"
 
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)

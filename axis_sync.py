@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from scripts.paid_file_ingestion import (
+from scripts.paid_file_processing.paid_file_ingestion import (
     build_file_pattern,
     build_pl_allocation_pattern,
     is_file_modified_today, 
@@ -39,7 +39,7 @@ from scripts.paid_file_ingestion import (
     PAID_FILE_DIR,
     main as process_paid_files,
 )
-from scripts.cc_paid_file_ingestion import (
+from scripts.paid_file_processing.cc_paid_file_ingestion import (
     build_cc_file_pattern,
     build_cc_allocation_pattern,
     get_cc_downloaded_files,
@@ -47,7 +47,7 @@ from scripts.cc_paid_file_ingestion import (
     CC_ALLOCATION_DIR,
     main as process_cc_paid_files,
 )
-from scripts.al_paid_file_ingestion import (
+from scripts.paid_file_processing.al_paid_file_ingestion import (
     build_al_file_pattern,
     build_al_allocation_pattern,
     get_al_downloaded_files,
@@ -73,7 +73,7 @@ BASE_DIR = "/home/sarvam/axis"
 LOCAL_BUFFER = BASE_DIR + "/temp_buffer"
 LOG_FILE = BASE_DIR + "/logs/axis_processed_files.log"
 SLACK_BOT_TOKEN = os.environ["SLACK_BOT_TOKEN"]
-SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0ADMKT2WDT")
+SLACK_CHANNEL_ID = os.environ.get("SLACK_CHANNEL_ID", "C0AE46B861X")
 OOO_BASE_DIR = "/home/sarvam/ooo-automation"
 OOO_LOG_DIR = OOO_BASE_DIR + "/logs"
 
@@ -385,9 +385,9 @@ def classify_file(name, full_remote_path, rules, general_history):
 
 async def process_pullback_files(pullback_files):
     """Process all collected pullback/lien files: resolve via API, upload CSVs to blob, alert Slack."""
-    from scripts.handle_pl_pullback import process as process_pl_pullback
-    from scripts.handle_cc_pullback import process as process_cc_pullback
-    from scripts.handle_cc_lien import process as process_cc_lien
+    from scripts.pullback_processing.handle_pl_pullback import process as process_pl_pullback
+    from scripts.pullback_processing.handle_cc_pullback import process as process_cc_pullback
+    from scripts.pullback_processing.handle_cc_lien import process as process_cc_lien
 
     output_dir = os.path.join(BASE_DIR, "temp_buffer", "pullback_output")
 
@@ -439,7 +439,7 @@ async def process_pullback_files(pullback_files):
                 pass
 
 
-def handle_file(rule, name, full_remote_path, current_dir, general_history, collected_files, pullback_collected):
+def handle_file(rule, name, full_remote_path, current_dir, general_history, collected_files, pullback_collected, cc_alloc_collected=None):
     """Download classified file, route to handler."""
     local_path = os.path.join(LOCAL_BUFFER, name.replace("/", "_"))
     if not download_file_from_sftp(full_remote_path, name, local_path, current_dir):
@@ -458,6 +458,12 @@ def handle_file(rule, name, full_remote_path, current_dir, general_history, coll
         return
     if rule.get("handler") == "allocation":
         product = rule.get("product", "pl")
+        if product == "cc" and cc_alloc_collected is not None:
+            upload_to_slack(local_path, name)
+            upload_to_blob(local_path, "allocation_file", product, filename=name)
+            cc_alloc_collected.append((local_path, name, full_remote_path))
+            append_to_log(LOG_FILE, full_remote_path)
+            return
         blob_path = upload_to_blob(local_path, "allocation_file", product, filename=name)
         if blob_path:
             upload_to_slack(local_path, name)
@@ -506,7 +512,7 @@ def handle_regular_file(name, full_remote_path, current_dir, general_history):
     append_to_log(LOG_FILE, full_remote_path)
 
 
-def recursive_scan(current_dir, general_history, rules, collected_files, pullback_collected):
+def recursive_scan(current_dir, general_history, rules, collected_files, pullback_collected, cc_alloc_collected=None):
     """List SFTP directory via sshpass, parse ls -lt output, classify each file."""
     lines = []
     for attempt in range(3):
@@ -559,7 +565,7 @@ def recursive_scan(current_dir, general_history, rules, collected_files, pullbac
             if is_today:
                 subdir = f"{current_dir}/{name}".replace("//", "/")
                 try:
-                    recursive_scan(subdir, general_history, rules, collected_files, pullback_collected)
+                    recursive_scan(subdir, general_history, rules, collected_files, pullback_collected, cc_alloc_collected)
                 except Exception as e:
                     print(f"[SFTP] Failed to scan subdirectory {subdir}: {e}")
             continue
@@ -575,7 +581,7 @@ def recursive_scan(current_dir, general_history, rules, collected_files, pullbac
         if rule == "regular":
             handle_regular_file(name, full_remote_path, current_dir, general_history)
         else:
-            handle_file(rule, name, full_remote_path, current_dir, general_history, collected_files, pullback_collected)
+            handle_file(rule, name, full_remote_path, current_dir, general_history, collected_files, pullback_collected, cc_alloc_collected)
 
 
 def load_history():
@@ -611,11 +617,12 @@ async def main():
     general_history = load_history()
     collected_files = []
     pullback_collected = []
+    cc_alloc_collected = []
 
     _load_ooo_canonical_filenames()
 
     try:
-        recursive_scan(".", general_history, rules, collected_files, pullback_collected)
+        recursive_scan(".", general_history, rules, collected_files, pullback_collected, cc_alloc_collected)
     except Exception as e:
         err_str = str(e)
         if "kex_exchange_identification" not in err_str and "Connection reset" not in err_str:
@@ -636,6 +643,24 @@ async def main():
 
     if pullback_collected:
         await process_pullback_files(pullback_collected)
+
+    # Process collected CC allocation files: transform + schedule campaigns
+    if cc_alloc_collected:
+        from scripts.allocation_file_processing.schedule_cc_allocation import process as schedule_cc_allocation
+        for local_path, name, full_remote_path in cc_alloc_collected:
+            try:
+                await schedule_cc_allocation(local_path)
+            except Exception as e:
+                send_slack_alert(
+                    f"CC allocation scheduling failed for {name}: {e}",
+                    alert_type="CC ALLOCATION SCHEDULING",
+                )
+            finally:
+                try:
+                    if os.path.exists(local_path):
+                        os.remove(local_path)
+                except OSError:
+                    pass
 
     processed_log = load_history()
     for lp, _rn, frp in collected_files:
