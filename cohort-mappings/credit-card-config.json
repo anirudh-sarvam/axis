@@ -98,12 +98,12 @@
   },
   "scheduling": {
     "risk_workflow_map": {
-      "L": { "workflow_id": "axis-cc-workflow-96c8a4ac", "version": 8 },
-      "M": { "workflow_id": "axis-cc-workflow-3d1f2085", "version": 4 },
-      "H": { "workflow_id": "axis-cc-workflow-835918f5", "version": 4 }
+      "L": { "workflow_id": "axis-cc-workflow-96c8a4ac", "version": 9 },
+      "M": { "workflow_id": "axis-cc-workflow-3d1f2085", "version": 5 },
+      "H": { "workflow_id": "axis-cc-workflow-835918f5", "version": 5 }
     },
     "allowed_schedule": {
-      "allowed_start_time": "10:00",
+      "allowed_start_time": "09:30",
       "allowed_end_time": "19:00",
       "allowed_days": [
         "Monday", "Tuesday", "Wednesday", "Thursday",
